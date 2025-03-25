@@ -136,7 +136,7 @@ def calculate_component_ratings(car_model):
             average_rating = sum(category_ratings) / len(category_ratings) # average rating of each synonyms
             grouped_ratings[category_name] = round(average_rating, 1) # average rating of each categories
         else:
-            grouped_ratings[category_name] = "Недостаточно данных"
+            grouped_ratings[category_name] = None
 
     return grouped_ratings # list for categories
 
