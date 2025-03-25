@@ -1,0 +1,37 @@
+{% extends 'webapp/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+    <h2 class="text-center text-primary">Регистрация</h2>
+    <form method="post" class="glass-card p-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary glass-btn w-100">Зарегистрироваться</button>
+    </form>
+    <p class="text-center text-muted mt-3">Уже зарегистрированы? <a href="{% url 'login' %}">Войти</a></p>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    /* Страница регистрации */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #5e54d1;
+        border-color: #5e54d1;
+    }
+</style>
+{% endblock %}

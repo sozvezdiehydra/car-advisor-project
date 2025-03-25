@@ -1,0 +1,50 @@
+{% extends 'webapp/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex align-items-center mb-4">
+                <div class="mr-3">
+                    <i class="fas fa-user-circle fa-3x text-primary"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 text-primary">Личный кабинет</h2>
+                    <p class="lead text-muted mb-0">Добро пожаловать, {{ user.username }}!</p>
+                </div>
+            </div>
+
+            <div class="list-group">
+                <a href="{% url 'car_data_input' %}" class="list-group-item list-group-item-action glass-card-item">
+                    <i class="fas fa-plus-circle mr-2 text-primary"></i> Новый запрос
+                </a>
+                <a href="{% url 'logout' %}" class="list-group-item list-group-item-action glass-card-item">
+                    <i class="fas fa-sign-out-alt mr-2 text-danger"></i> Выйти
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    /* Личный кабинет */
+    .list-group-item {
+        transition: all 0.3s ease;
+    }
+
+    .list-group-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .glass-card-item {
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(8px);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}

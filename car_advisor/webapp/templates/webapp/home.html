@@ -1,0 +1,122 @@
+{% extends 'webapp/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <div class="mb-4">
+                <i class="fas fa-car fa-4x text-primary mb-3"></i>
+                <h1 class="display-4 font-weight-bold">Car Advisor</h1>
+                <p class="lead text-muted">Умный анализ автомобильных отзывов</p>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-5 glass-card">
+                <div class="card-body p-4">
+                    <p class="card-text fs-5 text-muted">
+                        Сервис <span class="text-primary font-weight-bold">Car Advisor</span> помогает анализировать оценки компонентов автомобилей
+                        на основе реальных отзывов и предоставляет персонализированные рекомендации.
+                    </p>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center flex-wrap gap-3 mb-5">
+                {% if not user.is_authenticated %}
+                    <a href="{% url 'register' %}" class="btn btn-primary btn-lg px-4 py-2 shadow glass-btn">
+                        <i class="fas fa-user-plus mr-2"></i>Зарегистрироваться
+                    </a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg px-4 py-2 glass-btn">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Войти
+                    </a>
+                {% else %}
+                    <a href="{% url 'personal_account' %}" class="btn btn-primary btn-lg px-4 py-2 shadow glass-btn">
+                        <i class="fas fa-user-circle mr-2"></i>Личный кабинет
+                    </a>
+                    <a href="{% url 'car_data_input' %}" class="btn btn-success btn-lg px-4 py-2 shadow glass-btn">
+                        <i class="fas fa-plus mr-2"></i>Новый запрос
+                    </a>
+                {% endif %}
+            </div>
+
+            <div class="row mt-5">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-0 shadow-sm glass-card-item">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chart-bar fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">Анализ оценок</h5>
+                            <p class="card-text text-muted">Получайте точные оценки компонентов автомобилей</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-0 shadow-sm glass-card-item">
+                        <div class="card-body text-center">
+                            <i class="fas fa-search-dollar fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">Топ объявлений</h5>
+                            <p class="card-text text-muted">Лучшие предложения по выбранным критериям</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-0 shadow-sm glass-card-item">
+                        <div class="card-body text-center">
+                            <i class="fas fa-history fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">История запросов</h5>
+                            <p class="card-text text-muted">Все ваши анализы всегда под рукой</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    /* Главная страница */
+    .display-4 {
+        font-weight: 700;
+        background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+
+    .card {
+        border-radius: 12px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+
+    .btn-lg {
+        border-radius: 50px;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+    }
+
+    .btn-primary:hover {
+        background-color: #5e54d1;
+        border-color: #5e54d1;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #6c5ce7;
+        color: white;
+    }
+
+    .gap-3 {
+        gap: 1rem;
+    }
+</style>
+{% endblock %}

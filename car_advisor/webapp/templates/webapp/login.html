@@ -1,0 +1,60 @@
+{% extends 'webapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <h2 class="text-center text-primary">Вход</h2>
+    <form method="post" class="glass-card p-4">
+        {% csrf_token %}
+        <!-- Отображаем поля формы вручную -->
+        <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">Логин</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div class="text-danger">
+                    {% for error in form.username.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.password.id_for_label }}">Пароль</label>
+            {{ form.password }}
+            {% if form.password.errors %}
+                <div class="text-danger">
+                    {% for error in form.password.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary glass-btn w-100">Войти</button>
+    </form>
+    <p class="text-center text-muted mt-3">Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a></p>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    /* Страница входа */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #5e54d1;
+        border-color: #5e54d1;
+    }
+</style>
+{% endblock %}

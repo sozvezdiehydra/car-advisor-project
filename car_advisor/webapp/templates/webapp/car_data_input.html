@@ -1,0 +1,178 @@
+{% extends 'webapp/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 rounded-lg glass-card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0 text-center">
+                        <i class="fas fa-car mr-2"></i>Анализ автомобиля
+                    </h3>
+                </div>
+
+                <div class="card-body px-5 py-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label for="{{ form.car_brand.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-tag mr-2"></i>Марка автомобиля
+                            </label>
+                            {{ form.car_brand }}
+                            <small class="form-text text-muted">Например: Audi, Mercedes Benz</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.car_model.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-car-side mr-2"></i>Модель автомобиля
+                            </label>
+                            {{ form.car_model }}
+                            <small class="form-text text-muted">Например: Camry, X5, A4</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.search_criteria.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-search mr-2"></i>Критерии поиска
+                            </label>
+                            {{ form.search_criteria }}
+                            <small class="form-text text-muted">Укажите важные для вас параметры</small>
+                        </div>
+
+                        <div class="form-group text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 py-2 glass-btn">
+                                <i class="fas fa-chart-bar mr-2"></i>Проанализировать
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card-footer bg-light text-center py-3">
+                    <p class="mb-0 text-muted">
+                        <i class="fas fa-info-circle mr-2"></i>Результаты анализа будут сохранены в вашем личном кабинете
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Добавляем стили для ошибок валидации
+document.addEventListener('DOMContentLoaded', function() {
+    // Добавляем классы к полям формы
+    const inputs = document.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+        input.classList.add('form-control');
+        if (input.tagName === 'SELECT') {
+            input.classList.add('custom-select');
+        }
+    });
+
+    // Валидация формы
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+});
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* Стиль для страницы анализа автомобиля */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card-header {
+        background-color: #6c5ce7;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .card-header h3 {
+        font-weight: 600;
+    }
+
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #5e54d1;
+        border-color: #5e54d1;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        font-weight: 600;
+    }
+
+    .form-text {
+        font-size: 0.875rem;
+    }
+
+    .needs-validation .form-control:invalid {
+        border-color: #e74c3c;
+    }
+
+    .needs-validation .form-control:valid {
+        border-color: #2ecc71;
+    }
+
+    .card-footer {
+        background-color: #f4f6f9;
+    }
+
+    .glass-btn {
+        border-radius: 50px;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .glass-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+    }
+
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #5e54d1;
+        border-color: #5e54d1;
+    }
+
+    .glass-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50px;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}
