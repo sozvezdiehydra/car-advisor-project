@@ -102,31 +102,31 @@ def calculate_component_ratings(car_model):
     for category_name, category_data in component_keys_ru_to_en.items():
         en_category_key = category_data["en_key"]
         ru_synonyms = category_data["ru_keys"]
-        category_ratings = [] # Список для хранения оценок для текущей категории
+        category_ratings = [] # list for rating of categories
 
         for review in reviews:
             review_analysis_json = review.analysis
 
             if isinstance(review_analysis_json, dict):
-                for ru_component_key in ru_synonyms: # Итерируемся по СИНОНИМАМ внутри категории
-                    rating_value = review_analysis_json.get(ru_component_key) # Пытаемся получить оценку по каждому синониму
+                for ru_component_key in ru_synonyms:
+                    rating_value = review_analysis_json.get(ru_component_key)
 
                     if rating_value is not None:
                         try:
                             rating = float(rating_value)
-                            category_ratings.append(rating) # Добавляем оценку в список оценок КАТЕГОРИИ
+                            category_ratings.append(rating)
                         except ValueError:
                             print(f"Не удалось преобразовать оценку в число для компонента '{ru_component_key}' (категория '{category_name}') в отзыве: {review.summary}")
             else:
                 print(f"Ожидался JSON-словарь в поле analysis, но получен: {type(review_analysis_json)}. Отзыв: {review.summary}")
 
-        if category_ratings: # Если для категории были найдены оценки (хотя бы по одному синониму)
-            average_rating = sum(category_ratings) / len(category_ratings) # Вычисляем среднюю оценку по ВСЕМ СИНОНИМАМ в категории
-            grouped_ratings[category_name] = round(average_rating, 1) # Сохраняем среднюю оценку для КАТЕГОРИИ
+        if category_ratings:
+            average_rating = sum(category_ratings) / len(category_ratings) # average rating of each synonyms
+            grouped_ratings[category_name] = round(average_rating, 1) # average rating of each categories
         else:
-            grouped_ratings[category_name] = None # Если оценок для категории не найдено, ставим None
+            grouped_ratings[category_name] = "Недостаточно данных"
 
-    return grouped_ratings # Возвращаем словарь сгруппированных оценок по КАТЕГОРИЯМ
+    return grouped_ratings # list for categories
 
 def generate_top_ads(car_model, search_criteria):
     # TODO: Реализовать логику формирования топа объявлений + генерацию qr
@@ -134,30 +134,27 @@ def generate_top_ads(car_model, search_criteria):
 
 @login_required
 def generate_squares(request):
-    # Получаем последний запрос пользователя
+    # last request by user
     last_request = Request.objects.filter(user=request.user).order_by('-request_datetime').first()
 
     if not last_request or not last_request.component_ratings_data:
         return HttpResponse("Нет данных для отображения", content_type="text/plain")
 
-    # Получаем данные, предполагается, что это уже словарь
     data = last_request.component_ratings_data
 
-    # Убираем None-значения из данных для предотвращения ошибок в max/min
+    # delete None-value
     filtered_data = {key: value for key, value in data.items() if value is not None}
 
     if not filtered_data:
         return HttpResponse("Нет данных для отображения", content_type="text/plain")
 
-    # Преобразуем данные в более удобный формат
-    criteria = list(filtered_data.keys())  # Список критериев
-    values = list(filtered_data.values())  # Список значений критериев
+    criteria = list(filtered_data.keys())
+    values = list(filtered_data.values())
 
-    # Сгенерируем множество цветов и маркеров для разных критериев
-    colors = plt.cm.get_cmap("tab20", len(criteria))  # Используем палитру для разных цветов
-    markers = ['o', 's', '^', 'D', 'x', '+', 'v', '<', '>', 'p'] * 2  # Разные маркеры для разных точек
+    colors = plt.cm.get_cmap("tab20", len(criteria))
+    markers = ['o', 's', '^', 'D', 'x', '+', 'v', '<', '>', 'p'] * 2
 
-    # Создаем фигуру и оси
+    # Make axes
     plt.figure(figsize=(10, 8))
 
     for i, (criterion, value) in enumerate(zip(criteria, values)):
@@ -167,15 +164,14 @@ def generate_squares(request):
     plt.xlabel("Оценка")
     plt.ylabel("Критерии")
 
-    # Добавляем легенду, чтобы различать маркеры
     plt.legend(loc="best", fontsize=8, bbox_to_anchor=(1.05, 1))
 
-    # Сохраняем изображение в буфер
+    # save png to buffer
     buffer = BytesIO()
     plt.savefig(buffer, format="png")
     buffer.seek(0)
 
-    # Отправляем изображение на клиент
+    # response png to user
     return HttpResponse(buffer, content_type="image/png")
 
 
