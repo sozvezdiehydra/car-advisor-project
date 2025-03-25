@@ -1,0 +1,20 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h2 class="text-primary">Детали запроса</h2>
+            <p><strong>Марка:</strong> {{ request.car_brand }}</p>
+            <p><strong>Модель:</strong> {{ request.car_model }}</p>
+            <p><strong>Дата запроса:</strong> {{ request.request_datetime }}</p>
+            <h4>Оценки компонентов:</h4>
+            <ul>
+                {% for category, rating in request.component_ratings_data.items %}
+                <li><strong>{{ category }}:</strong> {{ rating }}</li>
+                {% endfor %}
+            </ul>
+            <a href="{% url 'personal_account' %}" class="btn btn-primary">Назад</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

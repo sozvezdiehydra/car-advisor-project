@@ -43,7 +43,19 @@ def logout_view(request):
 @login_required
 def personal_account_view(request):
     user_requests = Request.objects.filter(user=request.user).order_by('-request_datetime')
+
     return render(request, 'webapp/personal_account.html', {'user_requests': user_requests})
+
+
+from django.shortcuts import get_object_or_404
+
+
+@login_required
+def view_request_details(request, request_id):
+    request_obj = get_object_or_404(Request, id=request_id, user=request.user)
+
+    return render(request, 'webapp/request_details.html', {'request': request_obj})
+
 
 @login_required
 def edit_profile_view(request):

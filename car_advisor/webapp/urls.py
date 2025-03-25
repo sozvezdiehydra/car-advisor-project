@@ -11,4 +11,5 @@ urlpatterns = [
     path('edit_profile/', views.edit_profile_view, name='edit_profile'),
     path('car_data_input/', views.car_data_input_view, name='car_data_input'),
     path('generate_squares/', generate_squares, name='generate_squares'),
+    path('request/<int:request_id>/', views.view_request_details, name='view_request_details'),
 ]
