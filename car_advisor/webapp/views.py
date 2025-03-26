@@ -76,19 +76,20 @@ def car_data_input_view(request):
     if request.method == 'POST':
         form = CarDataForm(request.POST)
         if form.is_valid():
-            car_brand = form.cleaned_data['car_brand']
             car_model = form.cleaned_data['car_model']
             search_criteria = form.cleaned_data['search_criteria']
 
             component_ratings_data = calculate_component_ratings(car_model)
             top_ads_data = generate_top_ads(car_model, search_criteria) or []
 
+            reviews = AnalyzedReviews.objects.filter(model__iexact=car_model)
+            reviews_summaries = [review.summary for review in reviews]
+
             user_profile.tokens -= 20
             user_profile.save()
 
             request_obj = Request.objects.create(
                 user=request.user,
-                car_brand=car_brand,
                 car_model=car_model,
                 search_criteria=search_criteria,
                 component_ratings_data=component_ratings_data,
@@ -96,10 +97,10 @@ def car_data_input_view(request):
             )
 
             return render(request, 'webapp/result.html', {
-                'car_brand': car_brand,
                 'car_model': car_model,
                 'component_ratings_data': component_ratings_data,
                 'top_ads_data': top_ads_data,
+                'reviews_summaries': reviews_summaries,
                 'request_id': request_obj.id
             })
     else:
@@ -191,9 +192,3 @@ def generate_squares(request):
 
     # response png to user
     return HttpResponse(buffer, content_type="image/png")
-
-
-
-
-
-
