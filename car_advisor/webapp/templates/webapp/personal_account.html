@@ -15,6 +15,10 @@
                 </div>
             </div>
 
+            <div class="alert alert-info mt-3" role="alert">
+                <strong>Ваши токены:</strong> {{ user.userprofile.tokens }}
+            </div>
+
             <!-- Ссылки для действий пользователя -->
             <div class="list-group">
                 <a href="{% url 'car_data_input' %}" class="list-group-item list-group-item-action glass-card-item">
