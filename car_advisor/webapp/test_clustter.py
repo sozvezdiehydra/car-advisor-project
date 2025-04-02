@@ -129,7 +129,7 @@ def process_and_visualize(target_model: str = None):
             optimal_k = k_range[np.argmax(curvature) + 1]
 
             # Визуализация для проверки
-            plt.figure(figsize=(10, 5))
+            """plt.figure(figsize=(10, 5))
             plt.plot(k_range, wcss, 'bo-', markersize=8)
             plt.axvline(optimal_k, color='r', linestyle='--')
             plt.title(f"Метод локтя\nОптимальное количество кластеров: {optimal_k}")
@@ -137,7 +137,7 @@ def process_and_visualize(target_model: str = None):
             plt.ylabel("WCSS")
             plt.grid(alpha=0.3)
             plt.tight_layout()
-            plt.show()
+            plt.show()"""
 
             return optimal_k
 
@@ -200,6 +200,38 @@ def process_and_visualize(target_model: str = None):
         )
 
         # Аннотации
+        annot_main = plt.annotate(
+            "",
+            xy=(0, 0),
+            xytext=(20, 20),
+            textcoords="offset points",
+            bbox=dict(boxstyle="round", fc="w", alpha=0.9),
+            arrowprops=dict(arrowstyle="->")
+        )
+        annot_main.set_visible(False)
+
+        def on_hover_main(event):
+            vis = annot_main.get_visible()
+            if event.inaxes == ax:
+                cont, ind = scatter.contains(event)
+                if cont:
+                    index = ind["ind"][0]
+                    annot_main.xy = (points[index, 0], scores[index])
+                    annot_main.set_text(
+                        f"{features[index]}\n"
+                        f"Оценка: {scores[index]:.1f}\n"
+                        f"Кластер: {clusters[index]}"
+                    )
+                    annot_main.set_visible(True)
+                    fig = plt.gcf()
+                    fig.canvas.draw_idle()
+                else:
+                    if vis:
+                        annot_main.set_visible(False)
+                        fig = plt.gcf()
+                        fig.canvas.draw_idle()
+
+        plt.connect('motion_notify_event', on_hover_main)
         plt.title(f"Семантический анализ отзывов: {target_model}\n", fontsize=16, pad=20)
         plt.xlabel("Главная компонента 1 →", fontsize=12)
         plt.ylabel("Оценка критерия →", fontsize=12)
