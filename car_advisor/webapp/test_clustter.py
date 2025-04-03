@@ -47,7 +47,7 @@ def normalize_criteria(name: str) -> str:
     replacements = {
         "электромуфт": "электромуфта",
         "изнасу": "износу",
-        " ": "_",
+        "_": " ",
         "__": "_"
     }
     name = name.lower().strip()
@@ -238,61 +238,6 @@ def process_and_visualize(target_model: str = None):
         plt.grid(alpha=0.2)
         plt.tight_layout()
         plt.show()
-
-        # Построение графика
-        plt.figure(figsize=(18, 9), dpi=96)
-        plt.title(f"Анализ отзывов: {target_model}\n", fontsize=14)
-
-        # Визуализация данных
-        vectors = encoder.encode(features)
-        points = pca.fit_transform(vectors)
-
-        # Интерактивные элементы
-        scatter = plt.scatter(
-            points[:, 0],
-            [s for s in criteria.values()],
-            c=['#2ecc71' if s > 5 else '#f1c40f' if s > 0 else '#e74c3c' for s in criteria.values()],
-            s=120,
-            alpha=0.7,
-            edgecolors='w',
-            picker=True  # Включаем обработку кликов
-        )
-
-
-        # Аннотации при наведении
-        annot = plt.annotate(
-            "",
-            xy=(0, 0),
-            xytext=(20, 20),
-            textcoords="offset points",
-            bbox=dict(boxstyle="round", fc="w"),
-            arrowprops=dict(arrowstyle="->")
-        )
-        annot.set_visible(False)
-
-        # Обработчик событий
-        def on_hover(event):
-            vis = annot.get_visible()
-            if event.inaxes == plt.gca():
-                cont, ind = scatter.contains(event)
-                if cont:
-                    index = ind["ind"][0]
-                    annot.xy = (points[index, 0], list(criteria.values())[index])
-                    annot.set_text(f"{features[index]}\nОценка: {list(criteria.values())[index]:.1f}")
-                    annot.get_bbox_patch().set_alpha(0.9)
-                    annot.set_visible(True)
-                    plt.draw()
-                else:
-                    if vis:
-                        annot.set_visible(False)
-                        plt.draw()
-
-        plt.connect("motion_notify_event", on_hover)
-        plt.xlabel("Семантические кластеры →", fontsize=12)
-        plt.ylabel("Средняя оценка →", fontsize=12)
-        plt.grid(alpha=0.15)
-        plt.tight_layout()
-        plt.show()  # Вместо сохранения
 
 
 # ---------------------------
