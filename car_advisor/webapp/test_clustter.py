@@ -1,3 +1,4 @@
+import mplcursors
 import psycopg2
 import json
 import matplotlib.pyplot as plt
@@ -160,14 +161,14 @@ def process_and_visualize(target_model: str = None):
             cluster_keywords[cluster_id] = [features[i] for i in top_indices]
 
         # Настройка визуализации
-        plt.figure(figsize=(22, 11), dpi=96)
-        ax = plt.gca()
+        fig1 = plt.figure(figsize=(22, 11), dpi=96, num="Semantic Clustering")
+        ax1 = fig1.gca()
         cmap = plt.get_cmap('tab10', len(cluster_keywords))
         colors = [cmap(c) for c in clusters]
         y_positions = np.arange(1, len(features) + 1)
 
         # Построение графика
-        scatter = plt.scatter(
+        scatter = ax1.scatter(
             points[:, 0],
             y_positions,
             c=colors,
@@ -196,7 +197,7 @@ def process_and_visualize(target_model: str = None):
                            label=legend_text)
             )
 
-        ax.legend(
+        ax1.legend(
             handles=legend_elements,
             bbox_to_anchor=(1.15, 1),
             loc='upper left',
@@ -219,7 +220,7 @@ def process_and_visualize(target_model: str = None):
 
         def on_hover_main(event):
             vis = annot_main.get_visible()
-            if event.inaxes == ax:
+            if event.inaxes == ax1:
                 cont, ind = scatter.contains(event)
                 if cont:
                     index = ind["ind"][0]
@@ -231,13 +232,13 @@ def process_and_visualize(target_model: str = None):
                         f"Кластер: {clusters[index]}"
                     )
                     annot_main.set_visible(True)
-                    fig = plt.gcf()
-                    fig.canvas.draw_idle()
+                    fig1 = plt.gcf()
+                    fig1.canvas.draw_idle()
                 else:
                     if vis:
                         annot_main.set_visible(False)
-                        fig = plt.gcf()
-                        fig.canvas.draw_idle()
+                        fig1 = plt.gcf()
+                        fig1.canvas.draw_idle()
 
         plt.connect('motion_notify_event', on_hover_main)
         plt.title(f"Семантический анализ отзывов: {target_model}\n", fontsize=16, pad=20)
@@ -245,6 +246,59 @@ def process_and_visualize(target_model: str = None):
         plt.ylabel("Оценка критерия →", fontsize=12)
         plt.grid(alpha=0.2)
         plt.tight_layout()
+        plt.show()
+#------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------
+        # Второй график (оценки)
+        fig2 = plt.figure(figsize=(16, 10), dpi=96, num="Criteria Ratings")
+        ax2 = fig2.gca()
+
+        # Подготовка данных
+        sorted_indices = np.lexsort((-np.array(scores), clusters))  # Двойная сортировка
+        sorted_features = [features[i] for i in sorted_indices]
+        sorted_scores = [scores[i] for i in sorted_indices]
+        sorted_clusters = [clusters[i] for i in sorted_indices]
+
+        # Создание вертикальных столбцов
+        bars = ax2.bar(
+            x=range(len(sorted_features)),
+            height=sorted_scores,
+            color=[cmap(c) for c in sorted_clusters],
+            width=0.7,
+            alpha=0.8,
+            edgecolor='w'
+        )
+
+        # Настройка осей
+        ax2.set_xticks([])  # Скрываем метки OX
+        ax2.set_xlabel("Критерии →", fontsize=10)
+        ax2.set_ylabel("Оценка критерия →", fontsize=10)
+        ax2.set_ylim(-10.5, 10.5)
+        ax2.grid(axis='y', alpha=0.2)
+
+        # Добавляем интерактивные подсказки
+        cursor = mplcursors.cursor(bars, hover=True)
+        cursor.connect(
+            "add",
+            lambda sel: sel.annotation.set_text(
+                f"[{sel.index + 1}] {sorted_features[sel.index]}\n"
+                f"Кластер: {sorted_clusters[sel.index]}\n"
+                f"Score: {sorted_scores[sel.index]:.1f}"
+            )
+        )
+
+        # Отдельная легенда
+        ax2.legend(
+            handles=legend_elements,
+            loc='lower right',
+            fontsize=8,
+            title="Кластеры:",
+            title_fontsize=9
+        )
+
+        # Показ обоих графиков
+        plt.show(block=False)
         plt.show()
 
 
