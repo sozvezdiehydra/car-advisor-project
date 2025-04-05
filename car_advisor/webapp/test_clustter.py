@@ -164,18 +164,25 @@ def process_and_visualize(target_model: str = None):
         ax = plt.gca()
         cmap = plt.get_cmap('tab10', len(cluster_keywords))
         colors = [cmap(c) for c in clusters]
+        y_positions = np.arange(1, len(features) + 1)
 
         # Построение графика
         scatter = plt.scatter(
             points[:, 0],
-            scores,
+            y_positions,
             c=colors,
             s=140,
             alpha=0.8,
             edgecolors='w',
             picker=True
         )
-
+        # Настройка оси Y
+        plt.yticks(
+            ticks=y_positions,
+            labels=[f"{i + 1}. {feat}" for i, feat in enumerate(features)],  # Нумерация + название
+            fontsize=9
+        )
+        plt.ylim(0, len(features) + 1)
         # Динамическая легенда
         legend_elements = []
         for cluster_id, keywords in cluster_keywords.items():
@@ -216,7 +223,8 @@ def process_and_visualize(target_model: str = None):
                 cont, ind = scatter.contains(event)
                 if cont:
                     index = ind["ind"][0]
-                    annot_main.xy = (points[index, 0], scores[index])
+                    annot_main.xy = (scatter.get_offsets()[index][0],  # X-координата точки
+                                     scatter.get_offsets()[index][1])  # Y-координата точки
                     annot_main.set_text(
                         f"{features[index]}\n"
                         f"Оценка: {scores[index]:.1f}\n"
