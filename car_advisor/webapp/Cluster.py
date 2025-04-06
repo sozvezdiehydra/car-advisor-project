@@ -1,3 +1,4 @@
+import mplcursors
 import psycopg2
 import json
 import matplotlib.pyplot as plt
@@ -6,147 +7,120 @@ from sentence_transformers import SentenceTransformer
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import RobustScaler
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
 import numpy as np
+import os
 
-
+os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 # ---------------------------
-# 1. БАЗОВЫЕ ФУНКЦИИ
+# 1. КЛАСС ДЛЯ РАБОТЫ С БАЗОЙ ДАННЫХ
 # ---------------------------
+class DataHandler:
+    def __init__(self, host='127.0.0.1', dbname='drom',
+                 user='postgres', password='vivim1337'):
+        self.connection_params = {
+            'host': host,
+            'dbname': dbname,
+            'user': user,
+            'password': password,
+            'connect_timeout': 5
+        }
 
-def fetch_reviews(target_model: str = None, batch_size: int = 500) -> list:
-    """Добавлен фильтр по модели"""
-    try:
-        with psycopg2.connect(
-                host="127.0.0.1",
-                dbname="drom",
-                user="postgres",
-                password="vivim1337",
-                connect_timeout=5
-        ) as conn:
-            with conn.cursor() as cursor:
-                base_query = "SELECT model, analysis FROM analyzed_review"
-                params = ()
+    def _normalize_criteria(self, name: str) -> str:
+        replacements = {
+            "электромуфт": "электромуфта",
+            "изнасу": "износу",
+            "_": " ",
+            "__": "_"
+        }
+        name = name.lower().strip()
+        for k, v in replacements.items():
+            name = name.replace(k, v)
+        return name
 
-                if target_model:
-                    base_query += " WHERE model = %s"
-                    params = (target_model,)
-
-                base_query += " ORDER BY id LIMIT %s"
-                params += (batch_size,)
-
-                cursor.execute(base_query, params)
-                return cursor.fetchall()
-    except Exception as e:
-        print(f"Ошибка подключения: {str(e)}")
-        return []
-
-
-def normalize_criteria(name: str) -> str:
-    """Унификация названий критериев"""
-    replacements = {
-        "электромуфт": "электромуфта",
-        "изнасу": "износу",
-        "_": " ",
-        "__": "_"
-    }
-    name = name.lower().strip()
-    for k, v in replacements.items():
-        name = name.replace(k, v)
-    return name
-
-
-# ---------------------------
-# 2. ОСНОВНАЯ ОБРАБОТКА
-# ---------------------------
-
-def process_and_visualize(target_model: str = None):
-    """Анализ и визуализация отзывов с семантической кластеризацией"""
-    # Инициализация моделей
-    encoder = SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
-    pca = PCA(n_components=2)
-    scaler = RobustScaler()
-    clusterer = KMeans(n_init=10, n_clusters=5, random_state=42)
-    model_data = defaultdict(dict)
-
-    # Загрузка и предобработка данных
-    for model, analysis in fetch_reviews(target_model):
+    def fetch_data(self, target_model=None, batch_size=500) -> defaultdict:
         try:
-            if not analysis:
-                continue
-
-            # Десериализация данных
-            criteria = {}
-            if isinstance(analysis, str):
-                criteria = json.loads(analysis.replace("'", "\"")) or {}
-            elif isinstance(analysis, dict):
-                criteria = analysis.copy()
-
-            # Нормализация критериев
-            normalized_criteria = {
-                normalize_criteria(k): max(min(float(v), 10), -10)
-                for k, v in criteria.items()
-                if isinstance(v, (int, float, str))
-            }
-            model_data[model].update(normalized_criteria)
-
+            with psycopg2.connect(**self.connection_params) as conn:
+                with conn.cursor() as cursor:
+                    return self._execute_query(cursor, target_model, batch_size)
         except Exception as e:
-            print(f"Ошибка обработки {model}: {str(e)}")
-            continue
+            print(f"Ошибка подключения: {str(e)}")
+            return defaultdict(dict)
 
-    # Визуализация для целевой модели
-    if target_model:
-        if target_model not in model_data:
-            print(f"Модель {target_model} не найдена")
-            return
+    def _execute_query(self, cursor, target_model, batch_size):
+        base_query = "SELECT model, analysis FROM analyzed_review"
+        params = ()
 
-        criteria = model_data[target_model]
-        features = list(criteria.keys())
-        scores = list(criteria.values())
+        if target_model:
+            base_query += " WHERE model = %s"
+            params = (target_model,)
 
-        if not features:
-            print("Нет данных для визуализации")
-            return
+        base_query += " ORDER BY id LIMIT %s"
+        params += (batch_size,)
 
-        # Генерация эмбеддингов
-        vectors = encoder.encode(features)
+        cursor.execute(base_query, params)
+        return self._process_results(cursor.fetchall())
 
-        # Кластерный анализ
-        scaled_vectors = scaler.fit_transform(vectors)
+    def _process_results(self, results):
+        model_data = defaultdict(dict)
+        for model, analysis in results:
+            try:
+                criteria = self._parse_analysis(analysis)
+                model_data[model].update(self._normalize_data(criteria))
+            except Exception as e:
+                print(f"Ошибка обработки {model}: {str(e)}")
+        return model_data
 
-        # Метод локтя
-        def find_optimal_clusters(data, max_k=10):
-            wcss = []
-            k_range = range(2, max_k + 1)
-            for k in k_range:
-                kmeans = KMeans(n_clusters=k, n_init=10, random_state=42)
-                kmeans.fit(data)
-                wcss.append(kmeans.inertia_)
+    def _parse_analysis(self, analysis):
+        if isinstance(analysis, str):
+            return json.loads(analysis.replace("'", "\"")) or {}
+        return analysis.copy() if isinstance(analysis, dict) else {}
 
-            # Автоматическое определение "локтя"
-            deltas = np.diff(wcss)
-            curvature = np.abs(np.diff(deltas))
-            optimal_k = k_range[np.argmax(curvature) + 1]
+    def _normalize_data(self, criteria):
+        return {
+            self._normalize_criteria(k): max(min(float(v), 10), -10)
+            for k, v in criteria.items()
+            if isinstance(v, (int, float, str))
+        }
 
-            # Визуализация для проверки
-            """plt.figure(figsize=(10, 5))
-            plt.plot(k_range, wcss, 'bo-', markersize=8)
-            plt.axvline(optimal_k, color='r', linestyle='--')
-            plt.title(f"Метод локтя\nОптимальное количество кластеров: {optimal_k}")
-            plt.xlabel("Количество кластеров")
-            plt.ylabel("WCSS")
-            plt.grid(alpha=0.3)
-            plt.tight_layout()
-            plt.show()"""
 
-            return optimal_k
+# ---------------------------
+# 2. КЛАСС ДЛЯ ОБРАБОТКИ ДАННЫХ
+# ---------------------------
+class DataProcessor:
+    def __init__(self, encoder_model='sentence-transformers/paraphrase-multilingual-mpnet-base-v2'):
+        self.encoder = SentenceTransformer(encoder_model)
+        self.scaler = RobustScaler()
+        self.pca = PCA(n_components=2)
 
-        optimal_clusters = find_optimal_clusters(scaled_vectors)
+    def prepare_features(self, data):
+        features = list(data.keys())
+        scores = list(data.values())
+        return features, scores
+
+    def process_data(self, features):
+        vectors = self.encoder.encode(features)
+        scaled_vectors = self.scaler.fit_transform(vectors)
+        return vectors, scaled_vectors
+
+    def find_optimal_clusters(self, data, max_k=10):
+        wcss = []
+        for k in range(2, max_k + 1):
+            kmeans = KMeans(n_clusters=k, n_init=10, random_state=42)
+            kmeans.fit(data)
+            wcss.append(kmeans.inertia_)
+
+        deltas = np.diff(wcss)
+        curvature = np.abs(np.diff(deltas))
+        return range(2, max_k + 1)[np.argmax(curvature) + 1]
+
+    def perform_clustering(self, scaled_vectors, optimal_clusters):
         clusterer = KMeans(n_clusters=optimal_clusters, n_init=10, random_state=42)
         clusters = clusterer.fit_predict(scaled_vectors)
-        points = pca.fit_transform(scaled_vectors)
+        points = self.pca.fit_transform(scaled_vectors)
+        return clusters, points
 
-        # Определение ключевых слов кластеров
+    def get_cluster_keywords(self, features, vectors, clusters):
+        """Определение ключевых слов для кластеров"""
         cluster_keywords = {}
         for cluster_id in np.unique(clusters):
             mask = clusters == cluster_id
@@ -159,38 +133,52 @@ def process_and_visualize(target_model: str = None):
             top_indices = np.argsort(similarities)[-3:][::-1]
             cluster_keywords[cluster_id] = [features[i] for i in top_indices]
 
-        # Настройка визуализации
-        plt.figure(figsize=(22, 11), dpi=96)
-        ax = plt.gca()
-        cmap = plt.get_cmap('tab10', len(cluster_keywords))
-        colors = [cmap(c) for c in clusters]
+        return cluster_keywords
 
-        # Построение графика
-        scatter = plt.scatter(
-            points[:, 0],
-            scores,
-            c=colors,
-            s=140,
-            alpha=0.8,
-            edgecolors='w',
-            picker=True
-        )
 
-        # Динамическая легенда
-        legend_elements = []
-        for cluster_id, keywords in cluster_keywords.items():
+# ---------------------------
+# 3. КЛАСС ДЛЯ ВИЗУАЛИЗАЦИИ
+# ---------------------------
+class VisualizationEngine:
+    def __init__(self, features, scores, clusters, points, cluster_keywords):
+        self.features = features
+        self.scores = scores
+        self.clusters = clusters
+        self.points = points
+        self.cmap = plt.get_cmap('tab10', len(np.unique(clusters)))
+        self.cluster_keywords = cluster_keywords
+        self.legend_elements = self._create_legend_elements()
+
+    def _create_legend_elements(self):
+        """Генерация элементов для легенды"""
+        elements = []
+        for cluster_id, keywords in self.cluster_keywords.items():
             legend_text = f"Кластер {cluster_id}:\n" + "\n".join(keywords)
-            legend_elements.append(
+            elements.append(
                 plt.Line2D([0], [0],
                            marker='o',
                            color='w',
-                           markerfacecolor=cmap(cluster_id),
+                           markerfacecolor=self.cmap(cluster_id),
                            markersize=12,
                            label=legend_text)
             )
+        return elements
 
-        ax.legend(
-            handles=legend_elements,
+    def create_semantic_plot(self, target_model):
+        self.fig = plt.figure(figsize=(22, 11), dpi=96)
+        self.ax = self.fig.gca()
+
+        scatter = self.ax.scatter(
+            self.points[:, 0],
+            np.arange(1, len(self.features) + 1),
+            c=[self.cmap(c) for c in self.clusters],
+            s=140,
+            alpha=0.8,
+            edgecolors='w'
+        )
+
+        self.ax.legend(
+            handles=self.legend_elements,
             bbox_to_anchor=(1.15, 1),
             loc='upper left',
             borderaxespad=0.5,
@@ -199,49 +187,154 @@ def process_and_visualize(target_model: str = None):
             title_fontsize=12
         )
 
-        # Аннотации
-        annot_main = plt.annotate(
-            "",
-            xy=(0, 0),
-            xytext=(20, 20),
-            textcoords="offset points",
-            bbox=dict(boxstyle="round", fc="w", alpha=0.9),
-            arrowprops=dict(arrowstyle="->")
-        )
-        annot_main.set_visible(False)
+        self._configure_axes(self.ax)
+        self._add_annotations(self.fig, self.ax, scatter)
+        self._show_plot(self.fig, target_model)
 
-        def on_hover_main(event):
-            vis = annot_main.get_visible()
+    def create_ratings_plot(self):
+        fig = plt.figure(figsize=(20, 10), dpi=96)
+        ax = fig.gca()
+
+        # Добавляем легенду
+        ax.legend(
+            handles=self.legend_elements,
+            bbox_to_anchor=(1.25, 1),
+            loc='upper left',
+            borderaxespad=0.5,
+            fontsize=9,
+            title="Кластерные категории",
+            title_fontsize=11
+        )
+
+        sorted_indices = np.lexsort((-np.array(self.scores), self.clusters))
+        bars = ax.bar(
+            x=range(len(sorted_indices)),
+            height=[self.scores[i] for i in sorted_indices],
+            color=[self.cmap(c) for c in self.clusters[sorted_indices]],
+            width=0.7,
+            alpha=0.8,
+            edgecolor='w'
+        )
+
+        self._configure_ratings_axes(ax)
+        self._add_bar_annotations(bars)
+        plt.tight_layout()
+
+    def _configure_axes(self, ax):
+        plt.yticks(
+            ticks=np.arange(1, len(self.features) + 1),
+            labels=[f"{i + 1}. {feat}" for i, feat in enumerate(self.features)],
+            fontsize=9
+        )
+        ax.set_xlabel("Главная компонента 1 →", fontsize=12)
+        ax.grid(alpha=0.2)
+
+    def _add_annotations(self, fig, ax, scatter):
+        annot = ax.annotate("", xy=(0, 0), xytext=(20, 20),
+                            textcoords="offset points",
+                            bbox=dict(boxstyle="round", fc="w", alpha=0.9),
+                            arrowprops=dict(arrowstyle="->"))
+        annot.set_visible(False)
+
+        def on_hover(event):
             if event.inaxes == ax:
                 cont, ind = scatter.contains(event)
+                annot.set_visible(cont)
                 if cont:
-                    index = ind["ind"][0]
-                    annot_main.xy = (points[index, 0], scores[index])
-                    annot_main.set_text(
-                        f"{features[index]}\n"
-                        f"Оценка: {scores[index]:.1f}\n"
-                        f"Кластер: {clusters[index]}"
-                    )
-                    annot_main.set_visible(True)
-                    fig = plt.gcf()
+                    idx = ind["ind"][0]
+                    annot.xy = (scatter.get_offsets()[idx])
+                    annot.set_text("\n".join([
+                        f"{self.features[idx]}",
+                        f"Оценка: {self.scores[idx]:.1f}",
+                        f"Кластер: {self.clusters[idx]}"
+                    ]))
                     fig.canvas.draw_idle()
-                else:
-                    if vis:
-                        annot_main.set_visible(False)
-                        fig = plt.gcf()
-                        fig.canvas.draw_idle()
 
-        plt.connect('motion_notify_event', on_hover_main)
-        plt.title(f"Семантический анализ отзывов: {target_model}\n", fontsize=16, pad=20)
-        plt.xlabel("Главная компонента 1 →", fontsize=12)
-        plt.ylabel("Оценка критерия →", fontsize=12)
-        plt.grid(alpha=0.2)
+        fig.canvas.mpl_connect("motion_notify_event", on_hover)
+
+    def _show_plot(self, fig, target_model):
+        plt.title(f"Семантический анализ отзывов: {target_model}\n",
+                  fontsize=16, pad=20)
         plt.tight_layout()
         plt.show()
 
+    def _configure_ratings_axes(self, ax):
+        ax.set_xticks([])
+        ax.set_xlabel("Критерии →", fontsize=10)
+        ax.set_ylabel("Оценка критерия →", fontsize=10)
+        ax.set_ylim(-10.5, 10.5)
+        ax.set_xlim(-0.5, len(self.features) + 2)  # Добавлено место для аннотаций
+        ax.grid(axis='y', alpha=0.2)
+
+    def _add_bar_annotations(self, bars):
+        cursor = mplcursors.cursor(bars, hover=True)
+        cursor.connect("add", lambda sel: sel.annotation.set_text(
+            f"[{sel.index + 1}] {self.features[sel.index]}\n"
+            f"Кластер: {self.clusters[sel.index]}\n"
+            f"Score: {self.scores[sel.index]:.1f}"
+        ))
+
 
 # ---------------------------
-# 3. ЗАПУСК СИСТЕМЫ
+# 4. ГЛАВНЫЙ КЛАСС ПРИЛОЖЕНИЯ
+# ---------------------------
+class ReviewAnalyzerApp:
+    def __init__(self):
+        self.data_handler = DataHandler()
+        self.data_processor = DataProcessor()
+
+    def run_analysis(self, target_model):
+        model_data = self.data_handler.fetch_data(target_model)
+
+        if not self._validate_data(model_data, target_model):
+            return
+
+        # 1. Получение сырых данных
+        features, scores = self.data_processor.prepare_features(model_data[target_model])
+
+        # 2. Обработка данных
+        vectors, scaled_vectors = self.data_processor.process_data(features)
+
+        # 3. Кластеризация
+        optimal_clusters = self.data_processor.find_optimal_clusters(scaled_vectors)
+        clusters, points = self.data_processor.perform_clustering(scaled_vectors, optimal_clusters)
+
+        # 4. Генерация ключевых слов (после кластеризации!)
+        cluster_keywords = self.data_processor.get_cluster_keywords(
+            features,
+            vectors,
+            clusters
+        )
+
+        # 5. Инициализация визуализатора со всеми параметрами
+        visualizer = VisualizationEngine(
+            features,
+            scores,
+            clusters,
+            points,
+            cluster_keywords  # Добавлен недостающий параметр
+        )
+
+        # 6. Отрисовка графиков
+        visualizer.create_semantic_plot(target_model)
+        visualizer.create_ratings_plot()
+        plt.show()
+
+    def _validate_data(self, model_data, target_model):
+        if target_model not in model_data:
+            print(f"Модель {target_model} не найдена")
+            return False
+
+        if not model_data[target_model]:
+            print("Нет данных для визуализации")
+            return False
+
+        return True
+
+
+# ---------------------------
+# ЗАПУСК ПРИЛОЖЕНИЯ
 # ---------------------------
 if __name__ == "__main__":
-    process_and_visualize(target_model = "Audi A7 2011")
+    app = ReviewAnalyzerApp()
+    app.run_analysis(target_model="Audi A7 2011")
