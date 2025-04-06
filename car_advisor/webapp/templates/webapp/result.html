@@ -38,6 +38,20 @@
     {% else %}
         <p class="text-muted">Топ объявлений не найден.</p>
     {% endif %}
+    <div class="reviews-section">
+    <h3>Отзывы о {{ car_brand }} {{ car_model }}:</h3>
+    {% if reviews_summaries %}
+        <div class="reviews-container">
+            {% for review in reviews_summaries %}
+                <div class="review-card">
+                    <p>{{ review }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>Отзывов для этой модели не найдено.</p>
+    {% endif %}
+    </div>
 
     <!-- Кнопки действий -->
     <div class="mt-4 text-center">
