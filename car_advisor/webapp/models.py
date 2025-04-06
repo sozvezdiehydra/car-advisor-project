@@ -1,10 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
+# Удалите этот импорт:
+# from django.contrib.postgres.fields import JSONField
 
-"""
-Модель для хранения запросов пользователей
-"""
 class Request(models.Model):
+    """
+    Модель для хранения запросов пользователей
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
     car_brand = models.CharField(max_length=100, verbose_name="Марка автомобиля")
     car_model = models.CharField(max_length=100, verbose_name="Модель автомобиля")
@@ -21,10 +23,14 @@ class Request(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.car_brand} {self.car_model}"
 
-"""
-Модель для хранения запросов из локальной БД
-"""
+
+from django.db import models
+from django.contrib.auth.models import User
+
 class AnalyzedReviews(models.Model):
+    """
+    Модель для анализированных отзывов из вашей БД
+    """
     id = models.AutoField(primary_key=True)
     model = models.CharField(max_length=100, verbose_name="Модель автомобиля")
     summary = models.TextField(verbose_name="Краткое содержание")
@@ -36,13 +42,3 @@ class AnalyzedReviews(models.Model):
 
     def __str__(self):
         return f"{self.model} - {self.summary[:50]}..."
-
-"""
-Модель для хранения профиля пользователя
-"""
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    tokens = models.PositiveIntegerField(default=100, verbose_name="Токены")
-
-    def __str__(self):
-        return f"{self.user.username} - {self.tokens} токенов"

@@ -15,10 +15,6 @@
                 </div>
             </div>
 
-            <div class="alert alert-info mt-3" role="alert">
-                <strong>Ваши токены:</strong> {{ user.userprofile.tokens }}
-            </div>
-
             <!-- Ссылки для действий пользователя -->
             <div class="list-group">
                 <a href="{% url 'car_data_input' %}" class="list-group-item list-group-item-action glass-card-item">
@@ -34,8 +30,8 @@
             <ul class="list-group mt-3">
                 {% for request in user_requests %}
                 <li class="list-group-item">
-                    <strong>{{ request.car_model }}</strong>
-                    <p><small>{{ request.request_datetime|date:"d.m.Y H:i:s" }}</small></p>
+                    <strong>{{ request.car_brand }} {{ request.car_model }}</strong>
+                    <p><small>{{ request.request_datetime }}</small></p>
                     <a href="{% url 'view_request_details' request.id %}" class="btn btn-link">Посмотреть детали</a>
                 </li>
                 {% empty %}

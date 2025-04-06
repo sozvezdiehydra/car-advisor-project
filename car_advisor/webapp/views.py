@@ -4,10 +4,12 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from .forms import CustomUserCreationForm, CarDataForm
-from .models import Request, AnalyzedReviews, UserProfile
+from .models import Request, AnalyzedReviews
 from django.http import HttpResponse
 from .component_keys import component_keys_ru_to_en
 import matplotlib.pyplot as plt
+from django.db import models
+import json # для работы с JSON
 
 def register_view(request):
     if request.method == 'POST':
@@ -66,48 +68,39 @@ def home_view(request):
 
 @login_required
 def car_data_input_view(request):
-    user_profile = get_object_or_404(UserProfile, user=request.user)
-
-    if user_profile.tokens < 20:
-        return render(request, 'webapp/car_data_input.html', {
-            'error_message': "У вас недостаточно токенов для выполнения запроса."
-        })
-
     if request.method == 'POST':
         form = CarDataForm(request.POST)
         if form.is_valid():
+            car_brand = form.cleaned_data['car_brand']
             car_model = form.cleaned_data['car_model']
             search_criteria = form.cleaned_data['search_criteria']
 
             component_ratings_data = calculate_component_ratings(car_model)
+
+            # Получаем топ объявлений
             top_ads_data = generate_top_ads(car_model, search_criteria) or []
 
-            reviews = AnalyzedReviews.objects.filter(model__iexact=car_model)
-            reviews_summaries = [review.summary for review in reviews]
-
-            user_profile.tokens -= 20
-            user_profile.save()
-
+            # Сохранение запроса в историю
             request_obj = Request.objects.create(
                 user=request.user,
+                car_brand=car_brand,
                 car_model=car_model,
                 search_criteria=search_criteria,
                 component_ratings_data=component_ratings_data,
                 top_ads_data=top_ads_data
             )
 
+
             return render(request, 'webapp/result.html', {
+                'car_brand': car_brand,
                 'car_model': car_model,
                 'component_ratings_data': component_ratings_data,
                 'top_ads_data': top_ads_data,
-                'reviews_summaries': reviews_summaries,
                 'request_id': request_obj.id
             })
     else:
         form = CarDataForm()
-
     return render(request, 'webapp/car_data_input.html', {'form': form})
-
 
 def calculate_component_ratings(car_model):
 
@@ -192,3 +185,9 @@ def generate_squares(request):
 
     # response png to user
     return HttpResponse(buffer, content_type="image/png")
+
+
+
+
+
+
