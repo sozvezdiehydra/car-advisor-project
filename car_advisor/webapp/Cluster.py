@@ -9,6 +9,7 @@ from sklearn.preprocessing import RobustScaler
 from sklearn.cluster import KMeans
 import numpy as np
 import os
+import re
 
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 # ---------------------------
@@ -25,17 +26,21 @@ class DataHandler:
             'connect_timeout': 5
         }
 
+    replacements = {
+        r'_+': ' ',  # Замена всех подчёркиваний на пробел
+        r'\s{2,}': ' ',  # Удаление двойных пробелов
+        r'[^а-яё\s]': '',  # Удаление всех не-буквенных символов кроме пробелов
+
+    }
     def _normalize_criteria(self, name: str) -> str:
-        replacements = {
-            "электромуфт": "электромуфта",
-            "изнасу": "износу",
-            "_": " ",
-            "__": "_"
-        }
+
         name = name.lower().strip()
-        for k, v in replacements.items():
-            name = name.replace(k, v)
-        return name
+
+        # Последовательная обработка паттернами
+        for pattern, replacement in self.replacements.items():
+            name = re.sub(pattern, replacement, name)
+
+        return name.strip()
 
     def fetch_data(self, target_model=None, batch_size=500) -> defaultdict:
         try:
@@ -120,7 +125,6 @@ class DataProcessor:
         return clusters, points
 
     def get_cluster_keywords(self, features, vectors, clusters):
-        """Определение ключевых слов для кластеров"""
         cluster_keywords = {}
         for cluster_id in np.unique(clusters):
             mask = clusters == cluster_id
@@ -153,7 +157,7 @@ class VisualizationEngine:
         """Генерация элементов для легенды"""
         elements = []
         for cluster_id, keywords in self.cluster_keywords.items():
-            legend_text = f"Кластер {cluster_id}:\n" + "\n".join(keywords)
+            legend_text = f"Кластер {cluster_id+1}:\n" + "\n".join(keywords)
             elements.append(
                 plt.Line2D([0], [0],
                            marker='o',
