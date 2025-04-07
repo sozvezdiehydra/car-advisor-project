@@ -2,11 +2,14 @@ import os
 import django
 import json
 
-# Настройка Django окружения (укажите путь к файлу settings вашего проекта)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'car_advisor.settings')  # Замените 'your_project_name' на имя вашего проекта
+#TODO: надо удалить, был скрипт для создание объктов в БД для тестирования
+#TODO: надо удалить, был скрипт для создание объктов в БД для тестирования
+#TODO: надо удалить, был скрипт для создание объктов в БД для тестирования
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'car_advisor.settings')
 django.setup()
 
-from webapp.models import AnalyzedReviews  # Замените 'webapp' на имя вашего приложения, если оно другое
+from webapp.models import AnalyzedReviews
 
 def add_car_data():
     """
@@ -20,7 +23,6 @@ def add_car_data():
                 {"engine": 4.5, "transmission": 4.8, "suspension": 4.2, "brakes": 4.7, "comfort": 4.6},
                 {"engine": 4.2, "transmission": 4.5, "suspension": 4.0, "brakes": 4.5, "comfort": 4.7},
                 {"engine": 4.7, "transmission": 4.9, "suspension": 4.3, "brakes": 4.8, "comfort": 4.8},
-                # ... вы можете добавить больше отзывов для Toyota Camry, если хотите
             ]
         },
         {
@@ -29,15 +31,12 @@ def add_car_data():
                 {"engine": 4.0, "transmission": 4.6, "suspension": 4.4, "brakes": 4.3, "comfort": 4.3},
                 {"engine": 4.1, "transmission": 4.7, "suspension": 4.5, "brakes": 4.4, "comfort": 4.4},
                 {"engine": 4.3, "transmission": 4.5, "suspension": 4.2, "brakes": 4.5, "comfort": 4.5},
-                # ... вы можете добавить больше отзывов для Honda Civic, если хотите
             ]
         },
-        # Добавьте данные для других машин по аналогии, если нужно
         {
             "model": "Audi A4",
             "reviews": [
                 {"engine": 4.6, "transmission": 4.7, "suspension": 4.5, "brakes": 4.8, "comfort": 4.6, "reliability": 4.7},
-                # ... добавьте больше отзывов для Audi A4, если хотите
             ]
         },
     ]
