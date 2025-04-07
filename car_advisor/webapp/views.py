@@ -3,6 +3,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
+
+from .analyzer import ReviewAnalyzerApp
 from .forms import CustomUserCreationForm, CarDataForm
 from .models import Request, AnalyzedReviews, UserProfile
 from django.http import HttpResponse
@@ -63,6 +65,25 @@ def edit_profile_view(request):
 def home_view(request):
     return render(request, 'webapp/home.html')
 
+def analyze_reviews(request):
+    semantic_plot = None
+    ratings_plot = None
+
+    if request.method == 'POST':
+        form = CarDataForm(request.POST)
+        if form.is_valid():
+            car_model = form.cleaned_data['car_model']
+
+            analyzer = ReviewAnalyzerApp()
+            semantic_plot, ratings_plot = analyzer.run_analysis(target_model=car_model)
+    else:
+        form = CarDataForm()
+
+    return render(request, 'analyze_reviews.html', {
+        'form': form,
+        'semantic_plot': semantic_plot,
+        'ratings_plot': ratings_plot
+    })
 
 @login_required
 def car_data_input_view(request):
@@ -79,28 +100,35 @@ def car_data_input_view(request):
             car_model = form.cleaned_data['car_model']
             search_criteria = form.cleaned_data['search_criteria']
 
-            component_ratings_data = calculate_component_ratings(car_model)
-            top_ads_data = generate_top_ads(car_model, search_criteria) or []
+            # Здесь мы получаем как графики, так и данные
+            analyzer = ReviewAnalyzerApp()
+            semantic_plot, ratings_plot, component_ratings_data, reviews_summaries = analyzer.run_analysis(target_model=car_model)
 
-            reviews = AnalyzedReviews.objects.filter(model__iexact=car_model)
-            reviews_summaries = [review.summary for review in reviews]
+            if component_ratings_data is None:
+                return render(request, 'webapp/car_data_input.html', {
+                    'error_message': "Нет данных для выбранной модели."
+                })
 
+            # Снижаем токены после выполнения анализа
             user_profile.tokens -= 20
             user_profile.save()
 
+            # Создаём запрос
             request_obj = Request.objects.create(
                 user=request.user,
                 car_model=car_model,
                 search_criteria=search_criteria,
                 component_ratings_data=component_ratings_data,
-                top_ads_data=top_ads_data
+                top_ads_data=[]
             )
 
             return render(request, 'webapp/result.html', {
                 'car_model': car_model,
                 'component_ratings_data': component_ratings_data,
-                'top_ads_data': top_ads_data,
+                'top_ads_data': [],
                 'reviews_summaries': reviews_summaries,
+                'semantic_plot': semantic_plot,
+                'ratings_plot': ratings_plot,
                 'request_id': request_obj.id
             })
     else:

@@ -1,160 +1,25 @@
-{% extends 'webapp/base.html' %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты анализа</title>
+</head>
+<body>
+    <h1>Результаты анализа для {{ car_model }}</h1>
 
-{% block content %}
-<div class="container py-5">
-    <!-- Заголовок страницы -->
-    <h2 class="text-center mb-4 text-primary">Результаты для {{ car_brand }} {{ car_model }}</h2>
-
-    <!-- Оценки компонентов автомобиля -->
-    <h3 class="mb-3 text-muted">Оценки компонентов автомобиля:</h3>
-    <div id="component_ratings_chart" class="mb-4 glass-card">
-        <!-- Заглушка для графика -->
-        <img src="{% url 'generate_squares' %}" alt="Оценки компонентов">
-        <p class="text-center text-muted">Диаграмма оценок компонентов автомобиля (в разработке)</p>
-        <ul class="list-group">
-            {% for component, rating in component_ratings_data.items %}
-                <li class="list-group-item glass-card-item">
-                    <strong>{{ component }}:</strong> {{ rating }}
-                </li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <!-- Топ объявлений -->
-    <h3 class="mb-3 text-muted">Топ объявлений:</h3>
-    {% if top_ads_data %}
-        <ul class="list-group">
-            {% for ad in top_ads_data %}
-                <li class="list-group-item d-flex justify-content-between align-items-center glass-card-item">
-                    <a href="{{ ad.url }}" target="_blank" class="text-decoration-none text-primary">
-                        {{ ad.title }}
-                    </a>
-                    <!-- QR-код объявления -->
-                    <img src="{% static 'webapp/qr_codes/' %}{{ ad.qr_code }}" alt="QR-код" class="qr-code-img">
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="text-muted">Топ объявлений не найден.</p>
+    {% if error_message %}
+        <p style="color: red;">{{ error_message }}</p>
     {% endif %}
-    <div class="reviews-section">
-    <h3>Отзывы о {{ car_brand }} {{ car_model }}:</h3>
-    {% if reviews_summaries %}
-        <div class="reviews-container">
-            {% for review in reviews_summaries %}
-                <div class="review-card">
-                    <p>{{ review }}</p>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p>Отзывов для этой модели не найдено.</p>
-    {% endif %}
-    </div>
 
-    <!-- Кнопки действий -->
-    <div class="mt-4 text-center">
-        <a href="{% url 'car_data_input' %}" class="btn btn-primary glass-btn mx-2">Новый запрос</a>
-        <a href="{% url 'personal_account' %}" class="btn btn-secondary glass-btn mx-2">Вернуться в личный кабинет</a>
-    </div>
-</div>
-{% endblock %}
+    <h2>Графики</h2>
 
-{% block scripts %}
-<style>
-    /* Основной фон страницы */
-    body {
-        background-color: #f7f9fc;
-        font-family: 'Arial', sans-serif;
-    }
+    <h3>Семантический анализ</h3>
+    <img src="data:image/png;base64,{{ semantic_plot }}" alt="Семантический анализ">
 
-    /* Заголовок */
-    h2 {
-        font-weight: bold;
-        color: #6c5ce7; /* Нежно-фиолетовый цвет */
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-    }
+    <h3>График рейтингов</h3>
+    <img src="data:image/png;base64,{{ ratings_plot }}" alt="График рейтингов">
 
-    /* Элементы с эффектом стекла */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.2); /* полупрозрачный белый */
-        border-radius: 12px;
-        backdrop-filter: blur(10px); /* размытие фона */
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        padding: 1.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: all 0.3s ease;
-    }
-
-    .glass-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    }
-
-    .glass-card-item {
-        background: rgba(255, 255, 255, 0.3); /* Полупрозрачные элементы */
-        border-radius: 8px;
-        margin-bottom: 10px;
-        transition: all 0.3s ease;
-    }
-
-    .glass-card-item:hover {
-        transform: translateX(5px);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-
-    /* Стили для списка с QR кодами */
-    .qr-code-img {
-        max-width: 50px;
-        height: auto;
-        transition: transform 0.3s ease;
-    }
-
-    .qr-code-img:hover {
-        transform: scale(1.1);
-    }
-
-    /* Кнопки */
-    .glass-btn {
-        border-radius: 50px;
-        padding: 0.75rem 2rem;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .glass-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
-    }
-
-    .btn-primary {
-        background-color: #6c5ce7;
-        border-color: #6c5ce7;
-    }
-
-    .btn-primary:hover {
-        background-color: #5e54d1;
-        border-color: #5e54d1;
-    }
-
-    .btn-secondary {
-        background-color: #aab8c2;
-        border-color: #aab8c2;
-    }
-
-    .btn-secondary:hover {
-        background-color: #8e9ba8;
-        border-color: #8e9ba8;
-    }
-
-    /* Общие стили для текста */
-    .text-muted {
-        color: #b2bec3 !important;
-    }
-
-    .text-primary {
-        color: #6c5ce7;
-    }
-</style>
-{% endblock %}
+    <p><a href="{% url 'home' %}">Вернуться на главную</a></p>
+</body>
+</html>

@@ -10,11 +10,13 @@ from sklearn.cluster import KMeans
 import numpy as np
 import os
 import re
+import io
+import base64
 
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 class DataHandler:
-    def __init__(self, host='127.0.0.1', dbname='drom',
-                 user='postgres', password='vivim1337'):
+    def __init__(self, host='localhost', dbname='project',
+                 user='postgres', password='postgres'):
         self.connection_params = {
             'host': host,
             'dbname': dbname,
@@ -27,18 +29,15 @@ class DataHandler:
         r'_+': ' ',
         r'\s{2,}': ' ',
         r'[^а-яё\s]': '',
-
     }
+
     def _normalize_criteria(self, name: str) -> str:
-
         name = name.lower().strip()
-
         for pattern, replacement in self.replacements.items():
             name = re.sub(pattern, replacement, name)
-
         return name.strip()
 
-    def fetch_data(self, target_model=None, batch_size=500) -> defaultdict:
+    def fetch_data(self, target_model=None, batch_size=500):
         try:
             with psycopg2.connect(**self.connection_params) as conn:
                 with conn.cursor() as cursor:
@@ -48,7 +47,7 @@ class DataHandler:
             return defaultdict(dict)
 
     def _execute_query(self, cursor, target_model, batch_size):
-        base_query = "SELECT model, analysis FROM analyzed_review"
+        base_query = "SELECT model, analysis FROM analyzed_viewsnew"
         params = ()
 
         if target_model:
@@ -80,12 +79,11 @@ class DataHandler:
         return {
             self._normalize_criteria(k): max(min(float(v), 10), -10)
             for k, v in criteria.items()
-            if isinstance(v, (int, float, str))
+            if isinstance(v, (int, float, str))  # Проверяем, что это числа или строки
         }
 
-
 class DataProcessor:
-    def __init__(self, encoder_model='sentence-transformers/paraphrase-multilingual-mpnet-base-v2'):
+    def __init__(self, encoder_model='E:\\mymodels\\paraphrase-multilingual-mpnet-base-v2'):
         self.encoder = SentenceTransformer(encoder_model)
         self.scaler = RobustScaler()
         self.pca = PCA(n_components=2)
@@ -162,7 +160,7 @@ class VisualizationEngine:
         self.ax = self.fig.gca()
 
         scatter = self.ax.scatter(
-            self.points[:, 0],
+            self.points[:, 1],
             np.arange(1, len(self.features) + 1),
             c=[self.cmap(c) for c in self.clusters],
             s=140,
@@ -188,7 +186,6 @@ class VisualizationEngine:
         fig = plt.figure(figsize=(20, 10), dpi=96)
         ax = fig.gca()
 
-        # Добавляем легенду
         ax.legend(
             handles=self.legend_elements,
             bbox_to_anchor=(1.25, 1),
@@ -267,47 +264,81 @@ class VisualizationEngine:
             f"Score: {self.scores[sel.index]:.1f}"
         ))
 
+    def save_semantic_plot(self, target_model):
+        buf = io.BytesIO()
+        self.create_semantic_plot(target_model)
+        self.fig.savefig(buf, format='png', bbox_inches='tight')
+        plt.close(self.fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode('utf-8')
+
+    def save_ratings_plot(self):
+        buf = io.BytesIO()
+        fig = plt.figure(figsize=(20, 10), dpi=96)
+        ax = fig.gca()
+
+        ax.legend(
+            handles=self.legend_elements,
+            bbox_to_anchor=(1.25, 1),
+            loc='upper left',
+            borderaxespad=0.5,
+            fontsize=9,
+            title="Кластерные категории",
+            title_fontsize=11
+        )
+
+        sorted_indices = np.lexsort((-np.array(self.scores), self.clusters))
+        bars = ax.bar(
+            x=range(len(sorted_indices)),
+            height=[self.scores[i] for i in sorted_indices],
+            color=[self.cmap(c) for c in self.clusters[sorted_indices]],
+            width=0.7,
+            alpha=0.8,
+            edgecolor='w'
+        )
+
+        self._configure_ratings_axes(ax)
+        self._add_bar_annotations(bars)
+        plt.tight_layout()
+
+        fig.savefig(buf, format='png', bbox_inches='tight')
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode('utf-8')
+
 class ReviewAnalyzerApp:
     def __init__(self):
         self.data_handler = DataHandler()
         self.data_processor = DataProcessor()
+        self.component_scores = None  # Добавим сюда для хранения оценок
+        self.review_summaries = None  # Добавим сюда для хранения описаний
 
     def run_analysis(self, target_model):
         model_data = self.data_handler.fetch_data(target_model)
 
         if not self._validate_data(model_data, target_model):
-            return
+            return None, None, None, None
 
-        # 1. Получение сырых данных
+        # Обрабатываем данные
         features, scores = self.data_processor.prepare_features(model_data[target_model])
-
-        # 2. Обработка данных
         vectors, scaled_vectors = self.data_processor.process_data(features)
-
-        # 3. Кластеризация
         optimal_clusters = self.data_processor.find_optimal_clusters(scaled_vectors)
         clusters, points = self.data_processor.perform_clustering(scaled_vectors, optimal_clusters)
+        cluster_keywords = self.data_processor.get_cluster_keywords(features, vectors, clusters)
 
-        # 4. Генерация ключевых слов (после кластеризации!)
-        cluster_keywords = self.data_processor.get_cluster_keywords(
-            features,
-            vectors,
-            clusters
-        )
+        self.component_scores = scores
+        self.review_summaries = features
 
-        # 5. Инициализация визуализатора со всеми параметрами
-        visualizer = VisualizationEngine(
-            features,
-            scores,
-            clusters,
-            points,
-            cluster_keywords  # Добавлен недостающий параметр
-        )
+        #TODO: проверка вывода отрицательных оценок. Удалить.
+        #TODO: проверка вывода отрицательных оценок. Удалить.
+        #TODO: проверка вывода отрицательных оценок. Удалить.
+        print("test:", scores)
 
-        # 6. Отрисовка графиков
-        visualizer.create_semantic_plot(target_model)
-        visualizer.create_ratings_plot()
-        plt.show()
+        visualizer = VisualizationEngine(features, scores, clusters, points, cluster_keywords)
+        semantic_plot = visualizer.save_semantic_plot(target_model)
+        ratings_plot = visualizer.save_ratings_plot()
+
+        return semantic_plot, ratings_plot, self.component_scores, self.review_summaries
 
     def _validate_data(self, model_data, target_model):
         if target_model not in model_data:
@@ -319,7 +350,3 @@ class ReviewAnalyzerApp:
             return False
 
         return True
-
-if __name__ == "__main__":
-    app = ReviewAnalyzerApp()
-    app.run_analysis(target_model="Audi A7 2011")

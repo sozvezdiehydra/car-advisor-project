@@ -80,11 +80,11 @@ WSGI_APPLICATION = 'car_advisor.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'project',  # Имя твоей базы данных
-        'USER': 'postgres',  # Имя пользователя базы данных
-        'PASSWORD': 'postgres',  # Пароль пользователя базы данных
-        'HOST': 'localhost',  # Хост базы данных (обычно localhost)
-        'PORT': '5432',  # Порт PostgreSQL (обычно 5432)
+        'NAME': 'project',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

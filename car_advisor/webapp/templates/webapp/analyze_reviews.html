@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Анализ отзывов</title>
+</head>
+<body>
+    <h1>Семантический анализ отзывов</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Анализировать</button>
+    </form>
+
+    {% if semantic_plot %}
+        <h2>Семантический кластерный график</h2>
+        <img src="data:image/png;base64,{{ semantic_plot }}" alt="semantic_plot">
+
+        <h2>Рейтинги по критериям</h2>
+        <img src="data:image/png;base64,{{ ratings_plot }}" alt="ratings_plot">
+    {% endif %}
+</body>
+</html>
