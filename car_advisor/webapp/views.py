@@ -59,7 +59,9 @@ def view_request_details(request, request_id):
 
 @login_required
 def edit_profile_view(request):
+
     # TODO: Реализовать редактирование профиля пользователя (email, возможно пароль)
+
     return HttpResponse("Редактирование профиля в разработке")
 
 def home_view(request):
@@ -100,7 +102,6 @@ def car_data_input_view(request):
             car_model = form.cleaned_data['car_model']
             search_criteria = form.cleaned_data['search_criteria']
 
-            # Здесь мы получаем как графики, так и данные
             analyzer = ReviewAnalyzerApp()
             semantic_plot, ratings_plot, component_ratings_data, reviews_summaries = analyzer.run_analysis(target_model=car_model)
 
@@ -109,11 +110,9 @@ def car_data_input_view(request):
                     'error_message': "Нет данных для выбранной модели."
                 })
 
-            # Снижаем токены после выполнения анализа
             user_profile.tokens -= 20
             user_profile.save()
 
-            # Создаём запрос
             request_obj = Request.objects.create(
                 user=request.user,
                 car_model=car_model,
