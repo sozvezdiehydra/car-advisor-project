@@ -32,7 +32,6 @@ class PromtDB:
         # Передаем данные в ИИ
         self.send_to_ai(data)
 
-    import json
 
     def send_to_ai(self, data):
         """Метод для передачи данных в ИИ."""
