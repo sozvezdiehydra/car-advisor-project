@@ -1,3 +1,9 @@
+#TODO: REMOVE IT, REMOVE IT
+#TODO: REMOVE IT, REMOVE IT
+#TODO: REMOVE IT, REMOVE IT
+#TODO: I DONT WANNA TO DO THIS PROJECT ANYMORE
+
+
 component_keys_ru_to_en = {
     "Производительность": {
     "en_key": "performance",

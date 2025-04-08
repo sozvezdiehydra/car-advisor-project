@@ -14,6 +14,7 @@ import io
 import base64
 
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
+
 class DataHandler:
     def __init__(self, host='localhost', dbname='project',
                  user='postgres', password='postgres'):
@@ -79,8 +80,9 @@ class DataHandler:
         return {
             self._normalize_criteria(k): max(min(float(v), 10), -10)
             for k, v in criteria.items()
-            if isinstance(v, (int, float, str))  # Проверяем, что это числа или строки
+            if isinstance(v, (int, float, str))
         }
+
 
 class DataProcessor:
     def __init__(self, encoder_model='E:\\mymodels\\paraphrase-multilingual-mpnet-base-v2'):
@@ -144,7 +146,7 @@ class VisualizationEngine:
     def _create_legend_elements(self):
         elements = []
         for cluster_id, keywords in self.cluster_keywords.items():
-            legend_text = f"Кластер {cluster_id+1}:\n" + "\n".join(keywords)
+            legend_text = f"Кластер {cluster_id + 1}:\n" + "\n".join(keywords)
             elements.append(
                 plt.Line2D([0], [0],
                            marker='o',
@@ -156,10 +158,10 @@ class VisualizationEngine:
         return elements
 
     def create_semantic_plot(self, target_model):
-        self.fig = plt.figure(figsize=(22, 11), dpi=96)
-        self.ax = self.fig.gca()
+        fig = plt.figure(figsize=(22, 11), dpi=96)
+        ax = fig.gca()
 
-        scatter = self.ax.scatter(
+        scatter = ax.scatter(
             self.points[:, 1],
             np.arange(1, len(self.features) + 1),
             c=[self.cmap(c) for c in self.clusters],
@@ -168,7 +170,7 @@ class VisualizationEngine:
             edgecolors='w'
         )
 
-        self.ax.legend(
+        ax.legend(
             handles=self.legend_elements,
             bbox_to_anchor=(1.15, 1),
             loc='upper left',
@@ -178,23 +180,15 @@ class VisualizationEngine:
             title_fontsize=12
         )
 
-        self._configure_axes(self.ax)
-        self._add_annotations(self.fig, self.ax, scatter)
-        self._show_plot(self.fig, target_model)
+        self._configure_axes(ax)
+        self._add_annotations(fig, ax, scatter)
+        plt.title(f"Семантический анализ отзывов: {target_model}\n", fontsize=16, pad=20)
+        plt.tight_layout()
+        plt.show()
 
     def create_ratings_plot(self):
         fig = plt.figure(figsize=(20, 10), dpi=96)
         ax = fig.gca()
-
-        ax.legend(
-            handles=self.legend_elements,
-            bbox_to_anchor=(1.25, 1),
-            loc='upper left',
-            borderaxespad=0.5,
-            fontsize=9,
-            title="Кластерные категории",
-            title_fontsize=11
-        )
 
         sorted_indices = np.lexsort((-np.array(self.scores), self.clusters))
         bars = ax.bar(
@@ -206,9 +200,21 @@ class VisualizationEngine:
             edgecolor='w'
         )
 
+        ax.legend(
+            handles=self.legend_elements,
+            bbox_to_anchor=(1.25, 1),
+            loc='upper left',
+            borderaxespad=0.5,
+            fontsize=9,
+            title="Кластерные категории",
+            title_fontsize=11
+        )
+
         self._configure_ratings_axes(ax)
         self._add_bar_annotations(bars)
+        plt.title("Рейтинг критериев по кластерам\n", fontsize=16, pad=20)
         plt.tight_layout()
+        plt.show()
 
     def _configure_axes(self, ax):
         plt.yticks(
@@ -242,18 +248,12 @@ class VisualizationEngine:
 
         fig.canvas.mpl_connect("motion_notify_event", on_hover)
 
-    def _show_plot(self, fig, target_model):
-        plt.title(f"Семантический анализ отзывов: {target_model}\n",
-                  fontsize=16, pad=20)
-        plt.tight_layout()
-        plt.show()
-
     def _configure_ratings_axes(self, ax):
         ax.set_xticks([])
-        ax.set_xlabel("Критерии →", fontsize=10)
-        ax.set_ylabel("Оценка критерия →", fontsize=10)
+        ax.set_xlabel("Критерии", fontsize=10)
+        ax.set_ylabel("Оценка критерия", fontsize=10)
         ax.set_ylim(-10.5, 10.5)
-        ax.set_xlim(-0.5, len(self.features) + 2)  # Добавлено место для аннотаций
+        ax.set_xlim(-0.5, len(self.features) + 2)
         ax.grid(axis='y', alpha=0.2)
 
     def _add_bar_annotations(self, bars):
@@ -266,9 +266,34 @@ class VisualizationEngine:
 
     def save_semantic_plot(self, target_model):
         buf = io.BytesIO()
-        self.create_semantic_plot(target_model)
-        self.fig.savefig(buf, format='png', bbox_inches='tight')
-        plt.close(self.fig)
+        fig = plt.figure(figsize=(22, 11), dpi=96)
+        ax = fig.gca()
+
+        scatter = ax.scatter(
+            self.points[:, 1],
+            np.arange(1, len(self.features) + 1),
+            c=[self.cmap(c) for c in self.clusters],
+            s=140,
+            alpha=0.8,
+            edgecolors='w'
+        )
+
+        ax.legend(
+            handles=self.legend_elements,
+            bbox_to_anchor=(1.15, 1),
+            loc='upper left',
+            borderaxespad=0.5,
+            fontsize=10,
+            title="Семантические кластеры",
+            title_fontsize=12
+        )
+
+        self._configure_axes(ax)
+        plt.title(f"Семантический анализ отзывов: {target_model}\n", fontsize=16, pad=20)
+        plt.tight_layout()
+
+        fig.savefig(buf, format='png', bbox_inches='tight')
+        plt.close(fig)
         buf.seek(0)
         return base64.b64encode(buf.read()).decode('utf-8')
 
@@ -276,16 +301,6 @@ class VisualizationEngine:
         buf = io.BytesIO()
         fig = plt.figure(figsize=(20, 10), dpi=96)
         ax = fig.gca()
-
-        ax.legend(
-            handles=self.legend_elements,
-            bbox_to_anchor=(1.25, 1),
-            loc='upper left',
-            borderaxespad=0.5,
-            fontsize=9,
-            title="Кластерные категории",
-            title_fontsize=11
-        )
 
         sorted_indices = np.lexsort((-np.array(self.scores), self.clusters))
         bars = ax.bar(
@@ -297,8 +312,18 @@ class VisualizationEngine:
             edgecolor='w'
         )
 
+        ax.legend(
+            handles=self.legend_elements,
+            bbox_to_anchor=(1.25, 1),
+            loc='upper left',
+            borderaxespad=0.5,
+            fontsize=9,
+            title="Кластерные категории",
+            title_fontsize=11
+        )
+
         self._configure_ratings_axes(ax)
-        self._add_bar_annotations(bars)
+        plt.title("Рейтинг критериев по кластерам\n", fontsize=16, pad=20)
         plt.tight_layout()
 
         fig.savefig(buf, format='png', bbox_inches='tight')
@@ -306,12 +331,13 @@ class VisualizationEngine:
         buf.seek(0)
         return base64.b64encode(buf.read()).decode('utf-8')
 
+
 class ReviewAnalyzerApp:
     def __init__(self):
         self.data_handler = DataHandler()
         self.data_processor = DataProcessor()
-        self.component_scores = None  # Добавим сюда для хранения оценок
-        self.review_summaries = None  # Добавим сюда для хранения описаний
+        self.component_scores = None
+        self.review_summaries = None
 
     def run_analysis(self, target_model):
         model_data = self.data_handler.fetch_data(target_model)
@@ -319,7 +345,6 @@ class ReviewAnalyzerApp:
         if not self._validate_data(model_data, target_model):
             return None, None, None, None
 
-        # Обрабатываем данные
         features, scores = self.data_processor.prepare_features(model_data[target_model])
         vectors, scaled_vectors = self.data_processor.process_data(features)
         optimal_clusters = self.data_processor.find_optimal_clusters(scaled_vectors)
@@ -329,12 +354,11 @@ class ReviewAnalyzerApp:
         self.component_scores = scores
         self.review_summaries = features
 
-        #TODO: проверка вывода отрицательных оценок. Удалить.
-        #TODO: проверка вывода отрицательных оценок. Удалить.
-        #TODO: проверка вывода отрицательных оценок. Удалить.
-        print("test:", scores)
-
         visualizer = VisualizationEngine(features, scores, clusters, points, cluster_keywords)
+
+        visualizer.create_semantic_plot(target_model)
+        visualizer.create_ratings_plot()
+
         semantic_plot = visualizer.save_semantic_plot(target_model)
         ratings_plot = visualizer.save_ratings_plot()
 

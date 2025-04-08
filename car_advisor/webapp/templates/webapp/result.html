@@ -1,25 +1,103 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Результаты анализа</title>
-</head>
-<body>
-    <h1>Результаты анализа для {{ car_model }}</h1>
+{% block content %}
+<div class="container-fluid">
+    <div class="text-center my-5">
+        <h1 class="display-4 text-primary">Анализ: {{ car_model }}</h1>
+    </div>
 
-    {% if error_message %}
-        <p style="color: red;">{{ error_message }}</p>
-    {% endif %}
+    <div class="chart-container">
+        <div class="chart-header">
+            <i class="fas fa-brain"></i> Семантический анализ
+        </div>
+        <img src="data:image/png;base64,{{ semantic_plot }}"
+             class="chart-image"
+             alt="Семантическая визуализация">
+    </div>
 
-    <h2>Графики</h2>
+    <div class="chart-container">
+        <div class="chart-header">
+            <i class="fas fa-sort-amount-up"></i> Рейтинг критериев
+        </div>
+        <img src="data:image/png;base64,{{ ratings_plot }}"
+             class="chart-image"
+             alt="Рейтинговая визуализация">
+    </div>
 
-    <h3>Семантический анализ</h3>
-    <img src="data:image/png;base64,{{ semantic_plot }}" alt="Семантический анализ">
+    <a href="{% url 'home' %}" class="back-btn">
+        <i class="fas fa-arrow-circle-left"></i> На главную
+    </a>
+</div>
+{% endblock %}
 
-    <h3>График рейтингов</h3>
-    <img src="data:image/png;base64,{{ ratings_plot }}" alt="График рейтингов">
+{% block styles %}
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+        }
 
-    <p><a href="{% url 'home' %}">Вернуться на главную</a></p>
-</body>
-</html>
+        .chart-container {
+            margin: 2rem auto;
+            width: 100%;
+            min-height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+
+        .chart-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 1.5rem;
+        }
+
+        .chart-header {
+            padding: 1.5rem 2rem;
+            background: linear-gradient(135deg, #6c5ce7, #5e54d1);
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .back-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #5e54d1;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .back-btn:hover {
+            background-color: #6c5ce7;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                min-height: 400px;
+                margin: 1rem -15px;
+                width: calc(100% + 30px);
+                border-radius: 0;
+            }
+
+            .chart-image {
+                padding: 1rem;
+            }
+
+            .chart-header {
+                font-size: 1.2rem;
+                padding: 1rem;
+            }
+
+            .back-btn {
+                font-size: 1rem;
+                padding: 0.8rem 1.8rem;
+            }
+        }
+    </style>
+{% endblock %}
