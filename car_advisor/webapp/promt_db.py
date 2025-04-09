@@ -1,8 +1,9 @@
 import requests
 import psycopg2
 import json
-from DB import DB
+from .db import DB
 import os
+
 
 class PromtDB:
     def __init__(self, dbname, user, password, host="localhost", port="5432"):
@@ -11,14 +12,11 @@ class PromtDB:
         self.last_processed_id = read_last_processed_id()  # Читаем последний обработанный ID
 
     def get_data_and_process(self, query):
-        """Получает данные из базы и передает их в ИИ."""
-        # Получаем данные из базы
         data = self.db.fetch_data(query)
         if not data:
             print("Нет данных для обработки.")
             return
 
-        # Фильтруем данные, начиная с последнего обработанного ID
         if self.last_processed_id:
             data = [row for row in data if row[0] > self.last_processed_id]
 
@@ -33,10 +31,7 @@ class PromtDB:
         # Передаем данные в ИИ
         self.send_to_ai(data)
 
-
     def send_to_ai(self, data):
-        """Метод для передачи данных в ИИ."""
-        # Промт для обобщения
         summarize_prompt_template = """
     Ты — помощник, который обобщает отзывы о машинах. Твоя задача:
     1. Прочитать отзыв, который я предоставлю.
@@ -46,12 +41,11 @@ class PromtDB:
        - Особенности, которые упоминаются в отзыве.
     3. Сформулируй краткое обобщение отзыва, чтобы его можно было использовать для дальнейшего анализа.
     4. Не добавляй лишних деталей. Будь кратким и точным.
-    
+
     Отзыв:
     {review}
         """
 
-        # Промт для анализа
         analyze_prompt_template = """
     Ты — помощник, который анализирует отзывы о машинах. Твоя задача:
     1. Прочитать обобщённый отзыв, который я предоставлю.
@@ -68,14 +62,13 @@ class PromtDB:
         "характеристика_2": оценка,
         ...
     }}
-    
+
     Обобщённый отзыв:
     {summary}
         """
 
-        # Формируем данные для запроса
         for row in data:
-            id, model, review = row  # Распаковываем кортеж
+            id, model, review = row
 
             # Шаг 1: Обобщение отзыва
             summarize_prompt = summarize_prompt_template.format(review=review)
@@ -98,14 +91,14 @@ class PromtDB:
                 continue  # Пропускаем этот отзыв, если JSON некорректен
 
             # Шаг 4: Запись результата в таблицу analyzed_reviews
-            self.db.insert_analyzed_review(id, summary, analysis_json)  # Исправлено: передаем только id, summary и analysis_json
+            self.db.insert_analyzed_review(id, summary,
+                                           analysis_json)  # Исправлено: передаем только id, summary и analysis_json
 
             # Обновляем последний обработанный ID
             self.last_processed_id = id
             write_last_processed_id(self.last_processed_id)  # Сохраняем в файл
 
     def _send_to_ollama(self, prompt):
-        """Отправляет запрос к API Ollama."""
         data = {
             "model": "mistral",
             "prompt": prompt,
@@ -120,17 +113,16 @@ class PromtDB:
             return f"Ошибка: {response.status_code}, {response.text}"
 
     def close(self):
-        """Закрываем соединение с базой данных."""
         self.db.close()
 
+
 def read_last_processed_id(file_path="last_processed_id.txt"):
-    """Читает последний обработанный ID из файла."""
     if os.path.exists(file_path):
         with open(file_path, "r") as file:
             return int(file.read().strip())
-    return None  # Если файла нет, возвращаем None
+    return None
+
 
 def write_last_processed_id(last_id, file_path="last_processed_id.txt"):
-    """Записывает последний обработанный ID в файл."""
     with open(file_path, "w") as file:
         file.write(str(last_id))

@@ -1,12 +1,12 @@
+from .db import DB
+from .promt_db import PromtDB
+from typing import List, Tuple, Dict
 import json
-import psycopg2
-from typing import List, Dict, Tuple
-from DB import DB
-from PromtDB import PromtDB
 
 class ReviewAnalyzer:
     def __init__(self, db: DB):
         self.db = db
+        self.db.connect()
         self.promt_db = PromtDB(
             dbname=db.dbname,
             user=db.user,
@@ -19,7 +19,7 @@ class ReviewAnalyzer:
     def get_ads_by_model(self, model: str) -> List[Tuple]:
         query = """
             SELECT id, name, chars
-            FROM drom_ads
+            FROM drom
             WHERE name ILIKE %s
             ORDER BY id ASC
         """
@@ -54,6 +54,12 @@ class ReviewAnalyzer:
         {char2}
         """
 
+        def get_ads_by_model(self, model: str) -> List[Tuple]:
+            query = "SELECT id, name, chars FROM drom WHERE name ILIKE %s"
+            self.db.cur.execute(query, (f'%{model}%',))
+            ads = self.db.cur.fetchall()
+            print(f"Найдено объявлений: {len(ads)}")  # Для отладки
+            return ads
         response = self._send_to_ollama(compare_prompt.format(char1=json.dumps(char1), char2=json.dumps(char2)))
 
         try:
@@ -70,7 +76,7 @@ class ReviewAnalyzer:
         ads = self.get_ads_by_model(model)
         if not ads:
             print(f"Нет объявлений для модели {model}")
-            return
+            return [], []  # Возвращаем пустые списки вместо None
 
         self._create_comparison_table()
         self._create_top_ads_table()
@@ -115,7 +121,7 @@ class ReviewAnalyzer:
 
         if not comparisons:
             print("Не удалось выполнить ни одного сравнения")
-            return
+            return [], []
 
         preliminary_top_ads = self._generate_top_ads(scores)
         self._save_top_ads(model, preliminary_top_ads, stage="preliminary")
@@ -161,8 +167,8 @@ class ReviewAnalyzer:
             comparison_result JSONB NOT NULL,
             winner_id INTEGER NOT NULL,
             comparison_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (ad1_id) REFERENCES drom_ads(id),
-            FOREIGN KEY (ad2_id) REFERENCES drom_ads(id)
+            FOREIGN KEY (ad1_id) REFERENCES drom(id),
+            FOREIGN KEY (ad2_id) REFERENCES drom(id)
         )
         """
         self.db.cur.execute(query)
@@ -178,7 +184,7 @@ class ReviewAnalyzer:
             rank INTEGER NOT NULL,
             stage VARCHAR(50),
             creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (ad_id) REFERENCES drom_ads(id)
+            FOREIGN KEY (ad_id) REFERENCES drom(id)
         )
         """
         self.db.cur.execute(query)
@@ -238,7 +244,7 @@ class ReviewAnalyzer:
 
         top_ads_with_urls = []
         for ad in top_ads:
-            url_query = "SELECT url FROM drom_ads WHERE id = %s"
+            url_query = "SELECT url FROM drom WHERE id = %s"
             self.db.cur.execute(url_query, (ad['ad_id'],))
             url_result = self.db.cur.fetchone()
             ad_url = url_result[0] if url_result else '#'
@@ -263,10 +269,9 @@ class ReviewAnalyzer:
         return self.promt_db._send_to_ollama(prompt)
 
     def get_ad_characteristics(self, ad_id: int) -> Dict:
-        query = "SELECT chars FROM drom_ads WHERE id = %s"
+        query = "SELECT chars FROM drom WHERE id = %s"
         self.db.cur.execute(query, (ad_id,))
         result = self.db.cur.fetchone()
         if result:
             return self.extract_characteristics(result[0])
         return {}
-

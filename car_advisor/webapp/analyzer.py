@@ -12,6 +12,7 @@ import os
 import re
 import io
 import base64
+from matplotlib.backends.backend_pdf import PdfPages
 
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 

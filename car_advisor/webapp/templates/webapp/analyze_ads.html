@@ -1,0 +1,193 @@
+{% extends 'webapp/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 rounded-lg glass-card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0 text-center">
+                        <i class="fas fa-car mr-2"></i>Анализ объявлений автомобилей
+                    </h3>
+                </div>
+
+                <div class="card-body px-5 py-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label for="{{ form.car_model.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-car-side mr-2"></i>Выберите автомобиль
+                            </label>
+                            {{ form.car_model }}
+                            <small class="form-text text-muted">Например: SUV или внедорожник AITO M9 2024 года, SUV или внедорожник BAIC BJ40 2024 года</small>
+                        </div>
+
+                        <div class="form-group text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 py-2 glass-btn">
+                                <i class="fas fa-chart-bar mr-2"></i>Проанализировать
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {% if error_message %}
+                <div class="alert alert-danger px-5" role="alert">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>{{ error_message }}
+                </div>
+                {% endif %}
+
+                {% if top_ads_data %}
+                <div class="card-body px-5 py-4">
+                    <h4 class="card-title mb-3 text-center">
+                        <i class="fas fa-list-alt mr-2"></i>Топ объявлений:
+                    </h4>
+                    <ul class="list-group list-group-flush">
+                        {% for ad_data in top_ads_data %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="{{ ad_data.url }}" target="_blank" class="text-decoration-none">
+                                <i class="fas fa-external-link-alt mr-2"></i>Объявление ID: {{ ad_data.ad_id }}
+                            </a>
+                            <span class="badge badge-primary badge-pill glass-badge">
+                                <i class="fas fa-star mr-1"></i>Rank: {{ ad_data.rank }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% elif top_ads_data|length == 0 and not error_message %}
+                <div class="card-body px-5 py-4 text-center">
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle mr-2"></i>Нет данных для отображения топа объявлений для указанной модели. Пожалуйста, выполните анализ.
+                    </p>
+                </div>
+                {% endif %}
+
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            input.classList.add('form-control');
+            if (input.tagName === 'SELECT') {
+                input.classList.add('custom-select');
+            }
+        });
+
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    });
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card-header {
+        background-color: #6c5ce7;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .card-header h3 {
+        font-weight: 600;
+    }
+
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #5e54d1;
+        border-color: #5e54d1;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        font-weight: 600;
+    }
+
+    .form-text {
+        font-size: 0.875rem;
+    }
+
+    .needs-validation .form-control:invalid {
+        border-color: #e74c3c;
+    }
+
+    .needs-validation .form-control:valid {
+        border-color: #2ecc71;
+    }
+
+    .card-footer {
+        background-color: #f4f6f9;
+    }
+
+    .glass-btn {
+        border-radius: 50px;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .glass-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+    }
+
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #5e54d1;
+        border-color: #5e54d1;
+    }
+
+    .glass-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50px;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .glass-badge {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50px;
+        backdrop-filter: blur(5px);
+        color: #333; /* Adjust text color for better readability */
+    }
+</style>
+{% endblock %}

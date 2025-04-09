@@ -4,6 +4,6 @@ from car_advisor.webapp import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('webapp.urls')), # Подключаем urls приложения webapp
+    path('', include('webapp.urls')),
     path('', views.analyze_reviews, name='analyze_reviews'),
 ]

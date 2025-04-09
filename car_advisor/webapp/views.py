@@ -3,13 +3,16 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
-
 from .analyzer import ReviewAnalyzerApp
 from .forms import CustomUserCreationForm, CarDataForm
 from .models import Request, AnalyzedReviews, UserProfile
 from django.http import HttpResponse
 from .component_keys import component_keys_ru_to_en
 import matplotlib.pyplot as plt
+from django.shortcuts import get_object_or_404
+from .andrey_llm import ReviewAnalyzer
+from .db import DB
+import json
 
 def register_view(request):
     if request.method == 'POST':
@@ -45,10 +48,6 @@ def personal_account_view(request):
     user_requests = Request.objects.filter(user=request.user).order_by('-request_datetime')
 
     return render(request, 'webapp/personal_account.html', {'user_requests': user_requests})
-
-
-from django.shortcuts import get_object_or_404
-
 
 @login_required
 def view_request_details(request, request_id):
@@ -135,6 +134,64 @@ def car_data_input_view(request):
 
     return render(request, 'webapp/car_data_input.html', {'form': form})
 
+@login_required
+def analyze_ads_view(request):
+    top_ads_data = None
+    error_message = None
+
+    if request.method == 'POST':
+        form = CarDataForm(request.POST)
+        if form.is_valid():
+            car_model = form.cleaned_data['car_model']
+
+            db_instance = DB(
+                'project',
+                'postgres',
+                'postgres',
+                'localhost',
+                '5432'
+            )
+            if not db_instance.connect():
+                error_message = "Не удалось установить соединение с базой данных. Проверьте настройки подключения."
+                return render(request, 'webapp/analyze_ads.html', {
+                    'form': form,
+                    'error_message': error_message,
+                    'top_ads_data': top_ads_data
+                })
+
+            analyzer = ReviewAnalyzer(db_instance)
+            preliminary_top_ads, final_top_ads = analyzer.process_model_ads(car_model)
+
+            if final_top_ads is None:
+                error_message = f"Нет данных для модели {car_model} или произошла ошибка при анализе."
+                return render(request, 'webapp/analyze_ads.html', {
+                    'form': form,
+                    'error_message': error_message,
+                    'top_ads_data': top_ads_data
+                })
+
+            query = """
+                SELECT top_ads_json
+                FROM top_ads_json
+                WHERE model = %s AND stage = %s
+            """
+            db_instance.cur.execute(query, (car_model, "final"))
+            result = db_instance.cur.fetchone()
+
+            if result:
+                top_ads_json_str = result[0]
+                top_ads_data = result[0]
+            else:
+                top_ads_data = []
+
+    else:
+        form = CarDataForm()
+
+    return render(request, 'webapp/analyze_ads.html', {
+        'form': form,
+        'top_ads_data': top_ads_data, # Передаем данные топа объявлений в шаблон
+        'error_message': error_message
+    })
 
 def calculate_component_ratings(car_model):
 
@@ -177,6 +234,63 @@ def calculate_component_ratings(car_model):
 def generate_top_ads(car_model, search_criteria):
     # TODO: Реализовать логику формирования топа объявлений + генерацию qr
     pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @login_required
 def generate_squares(request):
