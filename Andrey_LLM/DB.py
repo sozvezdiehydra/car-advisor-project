@@ -64,23 +64,3 @@ class DB:
             # Откат транзакции при ошибке
             self.conn.rollback()
             print(f"Ошибка при обновлении данных в таблице analyzed_reviews: {e}")
-# #Наша база данных с отзывами
-# DB = psycopg2.connect(
-#     dbname = "postgres",
-#     user = "postgres",
-#     password = "12345",
-#     host = "localhost",
-#     port = "5432"
-# )
-# #Курсор, он нам нужен для того, чтобы выполнять SQL-запросы
-# cur = DB.cursor()
-# #Получаем данные из таблицы и сохраняем их в переменную
-# cur.execute("SELECT * FROM drom ORDER BY id ASC")
-# rows = cur.fetchall()
-#
-# for row in rows:
-#     print(row)
-#
-# #Закрываем соединение
-# cur.close()
-# DB.close()
